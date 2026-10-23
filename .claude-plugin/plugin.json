@@ -1,0 +1,21 @@
+{
+  "name": "sw",
+  "version": "0.1.0",
+  "description": "Shipwright: research \u2192 architect \u2192 plan \u2192 worktree \u2192 TDD build \u2192 verify \u2192 review \u2192 llms.txt \u2192 PR \u2192 verify on dev.",
+  "author": {
+    "name": "jamesngdev",
+    "url": "https://github.com/jamesngdev"
+  },
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "tdd",
+    "worktree",
+    "nestjs",
+    "prisma",
+    "go",
+    "frontend"
+  ],
+  "homepage": "https://jamesngdev.github.io/shipwright/",
+  "repository": "https://github.com/jamesngdev/shipwright"
+}

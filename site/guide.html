@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shipwright Guide — install, configure and ship</title>
+  <meta name="description" content="How to install, configure and use Shipwright: every /sw command, sizes and gates, worktrees with their own database, the verify gate, PR rules, post-deploy checks and troubleshooting.">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="logo.svg" alt="">Shipwright</a>
+    <div class="links">
+      <a href="./">Home</a>
+      <a href="guide.html" style="color:var(--text)">Guide</a>
+      <a href="https://github.com/jamesngdev/shipwright">GitHub</a>
+      <button class="theme-toggle" id="theme" aria-label="Toggle theme">◐</button>
+    </div>
+  </div>
+</nav>
+
+<div class="doc">
+  <aside class="toc">
+    <b>Start</b>
+    <a href="#install">Install</a>
+    <a href="#setup">Machine setup</a>
+    <a href="#init">Repo init</a>
+    <b>Using it</b>
+    <a href="#ship">/sw:ship</a>
+    <a href="#sizes">Sizes &amp; gates</a>
+    <a href="#discover">Discover</a>
+    <a href="#architect">Architect</a>
+    <a href="#plan">Plan</a>
+    <a href="#worktree">Worktree</a>
+    <a href="#build">Build &amp; TDD</a>
+    <a href="#verify">Verify</a>
+    <a href="#review">Review</a>
+    <a href="#llms">llms.txt</a>
+    <a href="#pr">Pull requests</a>
+    <a href="#verify-dev">Verify on dev</a>
+    <a href="#cleanup">Cleanup</a>
+    <b>Reference</b>
+    <a href="#debug">Debugging</a>
+    <a href="#packs">Stack packs &amp; agents</a>
+    <a href="#config">Configuration</a>
+    <a href="#statusline">Statusline</a>
+    <a href="#scripts">Scripts</a>
+    <a href="#faq">FAQ &amp; troubleshooting</a>
+    <a href="#uninstall">Uninstall</a>
+  </aside>
+
+  <main class="prose">
+    <h1>Shipwright guide</h1>
+    <p>Shipwright is a Claude Code plugin named <code>sw</code>. You give it a task with <code>/sw:ship</code>. It researches, interviews you on the architecture, writes a test-first plan, and after you approve the plan it builds, verifies, reviews, documents and opens PRs without further check-ins. Once your change is deployed, it checks it on dev.</p>
+
+    <h2 id="install">Install</h2>
+    <p><b>Requirements:</b> Claude Code, Node ≥ 20, <code>git</code>, <code>gh</code> (logged in). For database isolation you also need <code>psql</code>/<code>pg_dump</code> and <code>redis-cli</code>. Frontend checks use Playwright.</p>
+    <h3>Option A: plugin only (one step)</h3>
+<pre>claude plugin install sw --marketplace jamesngdev/shipwright</pre>
+    <p>Restart Claude Code. At the first session start, the plugin copies its scripts to <code>~/.claude/shipwright/bin</code>. <code>/sw:setup</code> can then add the statusline and the CLAUDE.md block.</p>
+    <h3>Option B: full install from a clone</h3>
+<pre>git clone https://github.com/jamesngdev/shipwright && cd shipwright
+./install.sh                 # interactive
+./install.sh --yes           # accept everything
+./install.sh --no-statusline --keep-claude-md-sections</pre>
+    <p>The installer does four things:</p>
+    <ol>
+      <li>Copies the scripts to <code>~/.claude/shipwright/bin</code> and writes a default config.</li>
+      <li>Backs up <code>~/.claude/CLAUDE.md</code> and adds a managed block between <code>&lt;!-- shipwright:start --&gt;</code> and <code>&lt;!-- shipwright:end --&gt;</code>. If you agree, it also moves out the sections Shipwright replaces (<em>Post-Feature Auto-Chain</em>, <em>Feature Branch Hygiene</em>, <em>Branch &amp; PR Base</em>). Uninstall puts them back.</li>
+      <li>Sets the Shipwright statusline and keeps your previous one for uninstall.</li>
+      <li>Adds the marketplace and installs <code>sw@shipwright</code>.</li>
+    </ol>
+    <div class="callout warn">If <b>superpowers</b> or another workflow plugin is enabled, the installer warns you. Both would auto-trigger their own flows and compete with Shipwright.</div>
+
+    <h2 id="setup">Machine setup: <code>/sw:setup</code></h2>
+    <p>Run this once per machine. It asks for, or confirms:</p>
+    <ul>
+      <li><b>Local Postgres:</b> used when a repo's <code>DATABASE_URL</code> has no password. Default <code>localhost:5432</code>, user <code>postgres</code>.</li>
+      <li><b>Local Redis:</b> default <code>localhost:6379</code>.</li>
+      <li><b>Logs MCP:</b> which MCP server <code>/sw:verify-dev</code> uses to read dev logs. "None" means it only reports failures.</li>
+      <li><b>Default base branch:</b> <code>master</code>.</li>
+    </ul>
+    <p>It then checks that your tools are installed and offers to install the statusline and the CLAUDE.md block. The settings are stored in <code>~/.claude/shipwright/config.json</code>.</p>
+
+    <h2 id="init">Repo init: <code>/sw:init</code></h2>
+    <p>Run this once per repo. Shipwright suggests it at session start if the repo has no <code>CLAUDE.local.md</code>. It detects the following:</p>
+    <ul>
+      <li>the stack and package manager;</li>
+      <li>the lint, typecheck, test, coverage, build, dev, migrate and seed commands;</li>
+      <li>the health endpoint and API versioning;</li>
+      <li>where auth guards live;</li>
+      <li>whether the repo has an <code>llms.txt</code>.</li>
+    </ul>
+    <p>Then it asks you for the <b>dev and prod domains</b> and <b>dev test auth</b>, and writes a git-ignored <code>CLAUDE.local.md</code>:</p>
+<pre># Local project context (Shipwright) — not committed
+## Environments
+- Dev: https://api.dev.example.com   · health: /health
+- Prod: https://api.example.com      · (read-only — never test against prod)
+## Dev smoke-test auth
+POST /v1/auth/login {"email":"qa@example.com","password":"…"} → .accessToken
+## Commands
+- lint: pnpm lint · typecheck: pnpm tsc --noEmit · unit: pnpm test · integration: pnpm test:e2e
+- coverage: pnpm test --coverage --coverageReporters=lcov · build: pnpm build · dev: pnpm start:dev</pre>
+
+    <h2 id="ship">The main command: <code>/sw:ship</code></h2>
+<pre>/sw:ship "add partial refunds to orders"
+/sw:ship "fix: duplicate webhook creates two payments" --small
+/sw:ship --resume            # continue the active task in this worktree</pre>
+    <p>Each stage is its own skill, so you can also run any stage on its own, for example <code>/sw:verify</code> before you open a hand-made PR.</p>
+
+    <h2 id="sizes">Sizes, gates and when it stops</h2>
+    <table>
+      <tr><th>Size</th><th>When</th><th>What runs</th></tr>
+      <tr><td><b>tiny</b></td><td>≤ ~20 lines, one file, no schema/API change</td><td>branch in place → edit → quick verify → llms-txt → PR</td></tr>
+      <tr><td><b>small</b></td><td>one module, no new data model, ≤ ~5 tasks</td><td>code scout → light architect → plan → worktree → inline build → verify → review → llms-txt → PR → verify-dev</td></tr>
+      <tr><td><b>large</b></td><td>new model or migration, contract change, cross-module, concurrency/cache/security impact</td><td>everything, including parallel research, plan red-team and subagent build</td></tr>
+    </table>
+    <p>There are two gates (⛔): the <b>design</b> and the <b>plan</b>. After you approve the plan, Shipwright stops only for:</p>
+    <ol>
+      <li>irreversible or destructive operations;</li>
+      <li>security-sensitive actions;</li>
+      <li>side effects outside the worktree that are yours to take (merge, push to shared branches, deploy, publish);</li>
+      <li>a plan so broken that every way forward is a guess;</li>
+      <li>verification still failing after 3 rounds (or verify-dev after 2).</li>
+    </ol>
+    <p>Every other decision is made on the spot and logged in <code>plan.md</code>:</p>
+<pre>## Rulings
+- Ruling: store refund reason as enum, not free text — design lists 4 reasons — cost if wrong: one migration</pre>
+
+    <h2 id="discover">Discover</h2>
+    <p>Discover maps the code first. It uses CodeGraph when the repo has <code>.codegraph/</code>, and targeted Grep/Read otherwise. For large tasks it also runs 2–3 <code>sw-researcher</code> agents (Haiku) in parallel, each with one question:</p>
+    <ul>
+      <li>library docs through context7, pinned to your lockfile version;</li>
+      <li>current practices from recent official sources;</li>
+      <li>prior art via <code>gh search code</code>.</li>
+    </ul>
+    <p>The output is a one-page <code>research.md</code> covering current behavior, touch points, constraints, options seen, and risks for the architect.</p>
+
+    <h2 id="architect">Architect</h2>
+    <p>The architect stage runs in the main thread. It starts by echoing back what it understood, then asks <b>one question at a time</b>. Each question comes with a recommended option and states what your answer changes. It covers only the items your task touches:</p>
+    <table>
+      <tr><th>Area</th><th>Example</th></tr>
+      <tr><td>Data model &amp; migration</td><td>new table or column? backfill? migration order vs deploy?</td></tr>
+      <tr><td>API contract</td><td>versioning, backward compatibility, pagination, error codes</td></tr>
+      <tr><td>Consistency · idempotency · concurrency</td><td>transaction boundary, double submit, race on the same row</td></tr>
+      <tr><td>Cache · authz · failure modes</td><td>key/TTL/invalidation, ownership checks, timeouts and fallbacks</td></tr>
+      <tr><td>Performance · observability · rollout</td><td>N+1/index/payload, logs and metrics, feature flag and rollback</td></tr>
+      <tr><td>Frontend</td><td>loading/empty/error states, optimistic updates, a11y, responsive targets</td></tr>
+    </table>
+    <p>Next it lays out 2–3 approaches with their trade-offs and writes <code>design.md</code>, which doubles as the ADR. It does not plan until you approve.</p>
+
+    <h2 id="plan">Plan</h2>
+    <p>The plan starts with a file map. Each task then lists exact files, interfaces, a TDD tier, named tests and a "done when" command. Large plans are red-teamed by three personas before you see them: the <em>Breaker</em> (races, partial failure), the <em>Operator</em> (migrations, rollback) and the <em>Skeptic</em> (what to cut). Drafts live in <code>.sw/specs/</code>, which is git-excluded, and move into <code>docs/specs/&lt;date&gt;-&lt;slug&gt;/</code> in the worktree so they ship with the PR.</p>
+
+    <h2 id="worktree">Worktree</h2>
+<pre>node ~/.claude/shipwright/bin/wt.cjs create partial-refunds --prefix feat --size large</pre>
+    <table>
+      <tr><th>What</th><th>How</th></tr>
+      <tr><td>Location</td><td><code>.worktree/feat-partial-refunds</code>, with <code>.worktree/</code> added to <code>.gitignore</code></td></tr>
+      <tr><td>Base</td><td>root worktree's branch, else <code>master</code>/<code>main</code>; <b>never <code>develop</code></b></td></tr>
+      <tr><td>Dependencies</td><td><code>node_modules</code> APFS-cloned (<code>cp -c</code>: instant, copy-on-write, isolated), with reflink copy and then symlink as fallbacks</td></tr>
+      <tr><td>Env</td><td>only <code>.env</code>, <code>.env.local</code>, <code>.env.development*</code>, <code>.env.test*</code>; never production or staging</td></tr>
+      <tr><td>Database</td><td><code>&lt;db&gt;_wt_partial_refunds</code> on the same server as your <code>DATABASE_URL</code>: a full <code>pg_dump | psql</code> copy up to 100 MB, otherwise schema plus migration history followed by your seed</td></tr>
+      <tr><td>Redis · port</td><td>first empty db index (1–15), tracked per server; a free <code>PORT</code></td></tr>
+      <tr><td>State</td><td><code>.sw-state.json</code> (stage, size, DB, port), which drives the statusline and <code>--resume</code></td></tr>
+    </table>
+    <div class="callout">The main checkout is never touched. Its <code>.env</code>, DB and Prisma client stay exactly as they were.</div>
+
+    <h2 id="build">Build &amp; tiered TDD</h2>
+    <table>
+      <tr><th>Tier</th><th>For</th><th>Rule</th></tr>
+      <tr><td>test-first</td><td>domain/service logic, every bug fix</td><td>write the test → watch it fail for the expected reason → minimal code → green</td></tr>
+      <tr><td>integration</td><td>endpoints, handlers</td><td>real request → worktree DB → response, success + every documented error</td></tr>
+      <tr><td>none</td><td>config, DTOs, wiring, migrations</td><td>no test-first, but covered by integration tests</td></tr>
+    </table>
+    <p>Small tasks are built inline. For large tasks, each plan task goes to a fresh <code>sw-implementer</code> (Sonnet) with a brief file, followed by an <code>sw-spec-checker</code> that compares the diff with the brief (missing, extra or untested). Each task gets a checkpoint commit, and these are squashed before the PR.</p>
+
+    <h2 id="verify">Verify</h2>
+    <table>
+      <tr><th>#</th><th>Step</th><th>Pass</th></tr>
+      <tr><td>1–2</td><td>lint, typecheck</td><td>0 errors</td></tr>
+      <tr><td>3–4</td><td>unit, integration</td><td>0 failures, and no tests skipped by this branch</td></tr>
+      <tr><td>5</td><td>coverage</td><td><code>coverage-changed.cjs</code>: every changed source file at ≥ 80% lines</td></tr>
+      <tr><td>6–7</td><td>build, dev server</td><td>exit 0; health endpoint 200 on the worktree port</td></tr>
+      <tr><td>8</td><td>API smoke</td><td>every changed endpoint, happy path plus each error case</td></tr>
+      <tr><td>9</td><td>Playwright</td><td>(frontend) flows pass, 0 console errors, 0 failed requests</td></tr>
+    </table>
+    <p>If a step fails, Shipwright finds the root cause, fixes it and re-runs from that step, for up to 3 rounds. It never weakens tests or lowers thresholds to get a pass.</p>
+    <h3>Temporary auth bypass, done safely</h3>
+<pre>node ~/.claude/shipwright/bin/auth-bypass.cjs start src/auth/jwt.guard.ts   # snapshot first
+#   edit: canActivate() { return true; } // @sw-auth-bypass
+node ~/.claude/shipwright/bin/auth-bypass.cjs restore                      # always; fails if a marker is left</pre>
+    <p>A hook blocks <code>git commit</code>, <code>git push</code> and <code>gh pr create</code> while any <code>@sw-auth-bypass</code> marker exists. Authorization cases (401/403) are covered by integration tests locally and by real-auth checks on dev.</p>
+
+    <h2 id="review">Review</h2>
+    <p>One <code>sw-reviewer</code> (Opus) reviews the whole branch against <code>design.md</code> and <code>plan.md</code>, using the security and performance lenses and the stack pack references that are relevant. Critical and Important findings are fixed before the PR. Minor ones become follow-ups in the PR body.</p>
+
+    <h2 id="llms">llms.txt</h2>
+    <p>This step runs for every feature. For each client-facing change it documents the following, in an llmstxt.org-compliant <code>llms.txt</code> and topic files (default <code>docs/llm/</code>):</p>
+    <ul>
+      <li>the endpoint's purpose and auth;</li>
+      <li>request and response, with an example;</li>
+      <li>errors, with codes and what the client should do;</li>
+      <li>relations to other APIs and side effects.</li>
+    </ul>
+    <p>For internal-only changes it records an explicit no-op. <code>/sw:llms-txt audit</code> reports drift as MISSING, WRONG, DEAD or broken links, with diff patches.</p>
+
+    <h2 id="pr">Pull requests</h2>
+    <ul>
+      <li>Squashes to 1–3 commits, but only before the first push. It never force-pushes.</li>
+      <li>Switches the SSH identity you configured per repo owner, for example <code>aw</code>/<code>ap</code> aliases.</li>
+      <li><b>PR #1 → base branch</b> (kept open, never auto-merged) and <b>PR #2 → develop</b>.</li>
+      <li>If develop conflicts, it creates <code>integration/&lt;branch&gt;</code> from develop, merges the feature into it and opens the PR from there. <b>It never merges develop into the feature branch.</b></li>
+      <li>The PR body covers the summary, API changes, the verify table, smoke results with re-runnable curl lines, and the rulings. Steps that didn't run are written as "not run — reason".</li>
+    </ul>
+
+    <h2 id="verify-dev">Verify on dev</h2>
+    <p>Shipwright never merges. It checks the develop PR with <code>gh pr view</code>. After the merge, it asks you to confirm the deploy is live, then:</p>
+    <ul>
+      <li>checks the health endpoint and the commit, if exposed;</li>
+      <li>re-runs the smoke table on the dev domain with real auth from <code>CLAUDE.local.md</code>, adding 401/403 cases.</li>
+    </ul>
+    <p>On failure it reads logs through your configured logs MCP. A feature bug gets a test-first fix that is pushed and re-verified, for up to 2 rounds. An infra or config issue is reported with evidence, and Shipwright never changes the environment itself.</p>
+
+    <h2 id="cleanup">Cleanup</h2>
+<pre>/sw:cleanup partial-refunds</pre>
+    <p>Once the base-branch PR is merged, cleanup drops the worktree DB, flushes its Redis db, removes the worktree and deletes the merged branch. It refuses if there are uncommitted or untracked files, unless you confirm with <code>--force</code>.</p>
+
+    <h2 id="debug">Debugging: <code>/sw:debug</code></h2>
+    <p>Debugging works the same way whether you start it yourself or a verify step does: reproduce → trace backward to where the bad state is created → test one hypothesis at a time → write a failing test → fix → add a guard. After three failed hypotheses it steps back, or hands the evidence to <code>sw-debugger</code> for a fresh look. It has specific playbooks for type errors, CI-only failures, dev logs and performance (measure before and after).</p>
+
+    <h2 id="packs">Stack packs &amp; agents</h2>
+    <table>
+      <tr><th>Pack</th><th>Covers</th></tr>
+      <tr><td><code>/sw:node-backend</code></td><td>NestJS layering, Prisma/Postgres (N+1, select, pagination, transactions, migrations), Redis/BullMQ, Docker, REST API design, testing</td></tr>
+      <tr><td><code>/sw:go</code></td><td>service skeleton, errors, context, concurrency, pgx/sqlc, table-driven tests, httptest, race detector</td></tr>
+      <tr><td><code>/sw:frontend</code></td><td>React/Next performance, data and state, accessibility and design, Testing Library, Playwright verification</td></tr>
+    </table>
+    <table>
+      <tr><th>Agent</th><th>Model</th><th>Role</th></tr>
+      <tr><td>sw-scout · sw-researcher</td><td>Haiku</td><td>code map · one research question with sources</td></tr>
+      <tr><td>sw-implementer · sw-spec-checker</td><td>Sonnet</td><td>one plan task with TDD · diff vs brief</td></tr>
+      <tr><td>sw-verifier · sw-debugger · sw-docs-writer</td><td>Sonnet</td><td>verify pipeline · root cause · llms.txt / PR body</td></tr>
+      <tr><td>sw-reviewer</td><td>Opus</td><td>whole-branch review</td></tr>
+    </table>
+
+    <h2 id="config">Configuration</h2>
+    <h3><code>~/.claude/shipwright/config.json</code></h3>
+<pre>{
+  "postgres": { "host": "localhost", "port": 5432, "user": "postgres", "password": "", "database": "postgres" },
+  "redis":    { "host": "localhost", "port": 6379, "password": "" },
+  "logsMcp": "kubectl-dev",
+  "defaultBase": "master",
+  "dbCloneMaxBytes": 104857600,
+  "worktreeDir": ".worktree"
+}</pre>
+    <h3>Per repo</h3>
+    <p><code>CLAUDE.local.md</code> holds environments, dev auth, commands and stack notes, and is git-ignored. <code>.sw/</code> and <code>.sw-state.json</code> are excluded through <code>.git/info/exclude</code>.</p>
+
+    <h2 id="statusline">Statusline</h2>
+<pre>⛵ sw:verify 2/3 · large · feat/partial-refunds ⎇wt +3 ~2 · ↑2 · db:shop_wt_partial_refunds
+◆ Opus 5.5 · ctx ▓▓▓▓░░░░ 48% · $1.84 · 23m · api :41873</pre>
+    <p>Line 1 shows the stage and round, size, branch, worktree marker, changed files, commits ahead of base and the worktree DB. It only appears while a task is active. Line 2 shows the model, a context bar (green, then yellow, then red), cost, duration, and the dev-server port while it is running. Git calls are cached for 5 s.</p>
+
+    <h2 id="scripts">Scripts</h2>
+    <table>
+      <tr><th>Script</th><th>Usage</th></tr>
+      <tr><td><code>wt.cjs</code></td><td><code>create &lt;slug&gt; [--prefix feat] [--base B] [--no-db] [--no-deps]</code> · <code>remove &lt;slug&gt; [--force]</code> · <code>list</code> · <code>info</code> · <code>port</code></td></tr>
+      <tr><td><code>auth-bypass.cjs</code></td><td><code>start &lt;files…&gt;</code> · <code>restore</code> · <code>check</code></td></tr>
+      <tr><td><code>coverage-changed.cjs</code></td><td><code>--base master [--lcov coverage/lcov.info | --go cover.out] [--min 80]</code></td></tr>
+      <tr><td><code>state.cjs</code></td><td><code>get</code> · <code>set stage=verify round=2</code> · <code>clear</code></td></tr>
+    </table>
+
+    <h2 id="faq">FAQ &amp; troubleshooting</h2>
+    <h3>"pg_restore: unrecognized configuration parameter transaction_timeout"</h3>
+    <p>This happens when your local <code>pg_dump</code> is newer than the server. Shipwright already uses <code>pg_dump | psql</code> and filters that setting out. If you still see it, update Shipwright.</p>
+    <h3>The DB clone failed with a password error</h3>
+    <p>Add the password to the repo's <code>DATABASE_URL</code>, or set it in <code>/sw:setup</code>. It is used only when the URL has no password.</p>
+    <h3>Not on macOS / APFS</h3>
+    <p>Shipwright falls back to <code>cp --reflink=auto</code>, and then to a symlink. With a symlink, run a real install in the worktree before changing dependencies or the Prisma schema.</p>
+    <h3>A commit is blocked: "Auth bypass still present"</h3>
+    <p>Run <code>node ~/.claude/shipwright/bin/auth-bypass.cjs restore</code>. If it reports markers that were never snapshotted, remove them by hand.</p>
+    <h3>Can I skip a stage?</h3>
+    <p>Yes. Force a size (<code>--tiny</code>), or run individual stages yourself. Shipwright will still never report something as passing without running it.</p>
+
+    <h2 id="uninstall">Uninstall</h2>
+<pre>./uninstall.sh               # or: claude plugin uninstall sw@shipwright</pre>
+    <p>The uninstaller removes the plugin and the CLAUDE.md block, restores the moved sections and your previous statusline, and keeps <code>config.json</code>. Backups are in <code>~/.claude/backups/</code>.</p>
+  </main>
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>⛵ Shipwright · MIT</span>
+    <span><a href="./">Home</a> · <a href="https://github.com/jamesngdev/shipwright">GitHub</a> · <a href="https://github.com/jamesngdev/shipwright/issues">Issues</a></span>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

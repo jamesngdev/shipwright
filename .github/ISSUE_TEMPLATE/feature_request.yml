@@ -1,0 +1,20 @@
+name: Feature request
+description: Propose a stage, check or stack pack
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What goes wrong or costs too many tokens today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+  - type: textarea
+    id: cost
+    attributes:
+      label: Token / speed impact
+      description: Does this add always-loaded context, subagents, or approval stops?

@@ -1,0 +1,20 @@
+{
+  "name": "shipwright",
+  "owner": {
+    "name": "jamesngdev",
+    "url": "https://github.com/jamesngdev"
+  },
+  "plugins": [
+    {
+      "name": "sw",
+      "source": "./",
+      "description": "Research \u2192 architect \u2192 plan \u2192 worktree \u2192 TDD \u2192 verify \u2192 review \u2192 llms.txt \u2192 PR \u2192 verify on dev.",
+      "homepage": "https://jamesngdev.github.io/shipwright/",
+      "category": "development"
+    }
+  ],
+  "metadata": {
+    "description": "Shipwright \u2014 research-first, test-driven Claude Code workflow for backend (NestJS/Prisma/Postgres/Redis/Go) and frontend teams.",
+    "version": "0.1.0"
+  }
+}

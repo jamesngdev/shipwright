@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+.sw/
+.sw-state.json
+_site/
+*.log
+skills/llms-txt/scripts/__pycache__/

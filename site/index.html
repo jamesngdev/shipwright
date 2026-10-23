@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shipwright — research-first, test-driven Claude Code workflow</title>
+  <meta name="description" content="Shipwright is a Claude Code plugin that asks the hard architecture questions first, then ships to a verified pull request without stopping — worktrees with their own database, tiered TDD, real API smoke tests and post-deploy checks.">
+  <meta property="og:title" content="Shipwright — ask hard questions first, then ship without stopping">
+  <meta property="og:description" content="Research → architect → plan → worktree → TDD → verify → review → llms.txt → PR → verify on dev. A lean Claude Code plugin for backend and frontend teams.">
+  <meta property="og:image" content="https://jamesngdev.github.io/shipwright/icon.png">
+  <link rel="icon" href="logo.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<nav class="nav">
+  <div class="wrap">
+    <a class="brand" href="./"><img src="logo.svg" alt="">Shipwright</a>
+    <div class="links">
+      <a class="hide-sm" href="#flow">Flow</a>
+      <a class="hide-sm" href="#features">Features</a>
+      <a class="hide-sm" href="#compare">Compare</a>
+      <a href="guide.html">Guide</a>
+      <a class="hide-sm" href="https://github.com/jamesngdev/shipwright">GitHub</a>
+      <button class="theme-toggle" id="theme" aria-label="Toggle theme">◐</button>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow"><b>⛵ v0.1</b> Claude Code plugin · NestJS · Prisma · Postgres · Redis · Go · React</span>
+      <h1>Ask the hard questions first.<br> <span class="grad">Then ship without stopping.</span></h1>
+      <p class="lead">Shipwright researches your code and the ecosystem, interviews you on the architecture decisions that matter, then runs a test-driven build to a verified pull request in an isolated worktree with its own database. After deploy, it checks the change on dev.</p>
+      <div class="cta">
+        <a class="btn primary" href="guide.html">Read the guide →</a>
+        <a class="btn" href="https://github.com/jamesngdev/shipwright">★ Star on GitHub</a>
+      </div>
+      <div class="install"><span>$</span><code id="cmd">claude plugin install sw --marketplace jamesngdev/shipwright</code><button class="copy" data-copy="cmd">copy</button></div>
+    </div>
+    <div class="term" aria-label="Example session">
+      <div class="bar"><i></i><i></i><i></i></div>
+      <div class="body"><span class="t-acc">❯</span> <span class="t-b">/sw:ship</span> "partial refunds for orders"
+<span class="t-dim">Size:</span> <span class="t-y">large</span> <span class="t-dim">— new table + API contract change</span>
+<span class="t-ok">✓</span> discover   <span class="t-dim">3 researchers · research.md</span>
+<span class="t-acc">?</span> architect  <span class="t-dim">Refund total &gt; captured amount?</span>
+             <span class="t-cy">● 409 REFUND_EXCEEDS (Recommended)</span>
+<span class="t-ok">✓</span> design.md approved · plan.md approved
+<span class="t-ok">✓</span> worktree   <span class="t-dim">db: shop_wt_partial_refunds · redis 3</span>
+<span class="t-ok">✓</span> build      <span class="t-dim">6/6 tasks · TDD red → green</span>
+<span class="t-ok">✓</span> verify     <span class="t-dim">unit 214 · int 38 · cov ≥80% · smoke 9/9</span>
+<span class="t-ok">✓</span> review     <span class="t-dim">0 critical · 1 important fixed</span>
+<span class="t-ok">✓</span> llms-txt   <span class="t-dim">docs/llm/orders.md</span>
+<span class="t-ok">✓</span> pr         <span class="t-dim">#142 → master · #143 → develop</span></div>
+      <div class="status"><span class="t-acc">⛵</span> <span class="t-cy t-b">sw:verify-dev</span> <span class="t-dim">·</span> <span class="t-m">feat/partial-refunds</span> <span class="t-dim">⎇wt</span> <span class="t-dim">·</span> ↑2
+<span class="t-dim">◆</span> Opus 5.5 <span class="t-dim">·</span> ctx <span class="t-ok">▓▓▓░░░░░ 41%</span> <span class="t-dim">·</span> $2.10 <span class="t-dim">·</span> 31m</div>
+    </div>
+  </div>
+</header>
+
+<section class="alt">
+  <div class="wrap">
+    <div class="stats">
+      <div class="stat"><b>0</b><span>tokens injected per prompt</span></div>
+      <div class="stat"><b>2</b><span>approval gates — design and plan</span></div>
+      <div class="stat"><b>≥ 80%</b><span>coverage on changed files</span></div>
+      <div class="stat"><b>1 DB</b><span>per worktree, cloned and dropped for you</span></div>
+    </div>
+  </div>
+</section>
+
+<section id="flow">
+  <div class="wrap">
+    <div class="kicker">The flow</div>
+    <h2>Every question up front. Every claim backed by evidence.</h2>
+    <p class="sub"><code>/sw:ship</code> sizes the task (tiny, small or large) and runs the stages that size needs. You approve the design and the plan. After that Shipwright works through to the PR without pausing, and logs every judgment call as a <em>Ruling</em>.</p>
+    <div class="flow">
+      <div class="step"><h4>discover</h4><p>Code map via CodeGraph. Parallel research: context7 docs, current practices, real repos.</p></div>
+      <div class="step gate"><h4>architect</h4><p>One question at a time: data model, contracts, races, cache, authz, rollout.</p></div>
+      <div class="step gate"><h4>plan</h4><p>Exact files, signatures and named tests. Red-teamed when large.</p></div>
+      <div class="step"><h4>worktree</h4><p><code>.worktree/</code> with its own DB, Redis db and port.</p></div>
+      <div class="step"><h4>build</h4><p>Tiered TDD, with one subagent per task on large work.</p></div>
+      <div class="step"><h4>verify</h4><p>Lint → types → unit → integration → coverage → build → dev server → smoke → Playwright.</p></div>
+      <div class="step"><h4>review</h4><p>One Opus pass over the whole branch with security and performance lenses.</p></div>
+      <div class="step"><h4>llms-txt</h4><p>Client-facing docs synced with every feature.</p></div>
+      <div class="step"><h4>pr</h4><p>1–3 commits. PR → base (kept open) and PR → develop.</p></div>
+      <div class="step"><h4>verify-dev</h4><p>After merge and deploy, a smoke test on the dev domain, with logs on failure.</p></div>
+    </div>
+    <div class="flow-note"><span class="pill">continuous</span> After the plan is approved, the only stops are destructive actions, security-sensitive steps, shared side effects (merge, push, deploy), a broken plan, or failed retries.</div>
+  </div>
+</section>
+
+<section id="features" class="alt">
+  <div class="wrap">
+    <div class="kicker">Features</div>
+    <h2>Built for teams that ship backends</h2>
+    <p class="sub">NestJS, Prisma, Postgres and Redis first, with Go and frontend as first-class citizens.</p>
+    <div class="grid">
+      <div class="card"><div class="ico">🧭</div><h3>Architecture interview</h3><p>A checklist of 12 areas, asking only what the code doesn't already answer. Every question comes with a recommended option. You compare 2–3 approaches, and the result is written to <code>design.md</code> as an ADR.</p></div>
+      <div class="card"><div class="ico">🔬</div><h3>Real research</h3><p>Cheap Haiku researchers run in parallel over library docs (context7), recent practices and <code>gh search code</code> prior art. The output is one page, with sources.</p></div>
+      <div class="card"><div class="ico">🌿</div><h3>Worktrees that really isolate</h3><p>APFS-cloned <code>node_modules</code>. A Postgres DB cloned from yours, schema-only when the source is over 100 MB. A dedicated Redis db and a free port. All of it is dropped on cleanup.</p></div>
+      <div class="card"><div class="ico">🧪</div><h3>Tiered TDD</h3><p>Domain logic and bug fixes are test-first. Endpoints get integration tests against the real DB. Config and DTOs need no test-first. Coverage is gated on the files you changed.</p></div>
+      <div class="card"><div class="ico">🚦</div><h3>Runtime verification</h3><p>Boots the dev server and calls every changed endpoint, covering the happy path and each error case. Frontend flows run headless in Playwright, and the PR gets re-runnable curl lines.</p></div>
+      <div class="card"><div class="ico">🛰️</div><h3>Post-deploy check</h3><p>Waits for your develop PR to merge, then smoke-tests on the dev domain with real auth and reads logs through your MCP on failure. Feature bugs are fixed automatically.</p></div>
+      <div class="card"><div class="ico">🛡️</div><h3>Guard rails</h3><p>Asks before secrets are read. Never searches <code>node_modules</code>. Auth bypasses for smoke tests are snapshotted, and commit and push are blocked until every bypass is restored.</p></div>
+      <div class="card"><div class="ico">🪶</div><h3>Token-lean by design</h3><p>No per-prompt hooks. A bootstrap under 1 KB. About 4 K characters of always-loaded descriptions. References load on demand and subagent replies are capped.</p></div>
+      <div class="card"><div class="ico">📚</div><h3>llms.txt every time</h3><p>Integrators get docs that describe behavior, relations and error codes rather than field dumps. The docs are validated against llmstxt.org.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="compare">
+  <div class="wrap">
+    <div class="kicker">Compared</div>
+    <h2>The discipline of superpowers, the tooling of ClaudeKit, minus the weight</h2>
+    <p class="sub">Measured on the kits Shipwright was merged from.</p>
+    <div class="table-wrap">
+      <table class="table">
+        <tr><th></th><th>ClaudeKit</th><th>superpowers</th><th>Shipwright</th></tr>
+        <tr><td>Context injected on every prompt</td><td>~3 KB</td><td>0</td><td class="hl">0</td></tr>
+        <tr><td>Always-loaded skill + agent descriptions</td><td>~27 K chars</td><td>~3 K chars</td><td class="hl">~4.2 K chars</td></tr>
+        <tr><td>Deep architecture interview</td><td>partial</td><td>✓</td><td class="hl">✓ 12-area checklist</td></tr>
+        <tr><td>Web / docs / prior-art research</td><td>✓ (Gemini CLI)</td><td>—</td><td class="hl">✓ built-in, parallel</td></tr>
+        <tr><td>Approval gates</td><td>every step</td><td>design + plan</td><td class="hl">design + plan</td></tr>
+        <tr><td>Worktree with its own DB / Redis / port</td><td>—</td><td>—</td><td class="hl">✓</td></tr>
+        <tr><td>Dev-server API smoke tests</td><td>—</td><td>—</td><td class="hl">✓ guarded auth bypass</td></tr>
+        <tr><td>Coverage gate on changed files</td><td>—</td><td>—</td><td class="hl">✓ lcov + Go</td></tr>
+        <tr><td>Post-deploy verification</td><td>—</td><td>—</td><td class="hl">✓</td></tr>
+        <tr><td>Model routing per role</td><td>—</td><td>per task</td><td class="hl">Haiku · Sonnet · Opus pinned</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section class="alt">
+  <div class="wrap">
+    <div class="kicker">Quick start</div>
+    <h2>Three commands to your first ship</h2>
+    <div class="quick">
+      <div class="card"><b>1 · install</b><p>Add the marketplace and install the plugin, then restart Claude Code.</p><pre>claude plugin install sw \
+  --marketplace jamesngdev/shipwright</pre></div>
+      <div class="card"><b>2 · setup</b><p>Once per machine for local Postgres/Redis and your logs MCP. Once per repo for the dev/prod domains.</p><pre>/sw:setup
+/sw:init</pre></div>
+      <div class="card"><b>3 · ship</b><p>Describe the change. Answer the architecture questions, approve the plan, then grab a coffee.</p><pre>/sw:ship "rate-limit the
+  login endpoint per IP"</pre></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>⛵ Shipwright · MIT · built on ideas from <a href="https://github.com/obra/superpowers">obra/superpowers</a> and ClaudeKit</span>
+    <span><a href="guide.html">Guide</a> · <a href="https://github.com/jamesngdev/shipwright">GitHub</a> · <a href="https://github.com/jamesngdev/shipwright/blob/main/CHANGELOG.md">Changelog</a></span>
+  </div>
+</footer>
+<script src="site.js"></script>
+</body>
+</html>

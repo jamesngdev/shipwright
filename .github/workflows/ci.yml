@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+        options: >-
+          --health-cmd "redis-cli ping" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      SW_TEST_PG: postgresql://postgres:postgres@localhost:5432
+      SW_TEST_REDIS: redis://localhost:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Postgres client + redis-cli
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client redis-tools
+          pg_dump --version
+      - name: Syntax check
+        run: for f in bin/*.cjs bin/lib/*.cjs; do node --check "$f"; done
+      - name: Tests
+        run: npm test
+      - name: Python scripts compile
+        run: python3 -m py_compile skills/llms-txt/scripts/*.py
+
+  validate:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Manifests are valid JSON
+        run: |
+          python3 -m json.tool .claude-plugin/plugin.json >/dev/null
+          python3 -m json.tool .claude-plugin/marketplace.json >/dev/null
+          python3 -m json.tool hooks/hooks.json >/dev/null
+      - name: Skill and agent frontmatter + description budget
+        run: |
+          total=0
+          for f in skills/*/SKILL.md agents/*.md; do
+            head -1 "$f" | grep -q '^---$' || { echo "missing frontmatter: $f"; exit 1; }
+            grep -q '^name: ' "$f" || { echo "missing name: $f"; exit 1; }
+            d=$(awk '/^description:/{sub(/^description: */,"");print;exit}' "$f")
+            [ -n "$d" ] || { echo "missing description: $f"; exit 1; }
+            total=$((total + ${#d}))
+          done
+          echo "description chars: $total"
+          [ "$total" -le 4600 ] || { echo "description budget exceeded"; exit 1; }

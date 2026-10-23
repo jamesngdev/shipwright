@@ -1,0 +1,27 @@
+name: Bug report
+description: Something in Shipwright did not behave as documented
+labels: [bug]
+body:
+  - type: input
+    id: stage
+    attributes:
+      label: Stage / command
+      placeholder: /sw:worktree, wt.cjs create, statusline, …
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened vs. what you expected
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction
+      description: Minimal steps. Paste script JSON output if relevant (mask secrets).
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: macOS 15 · Claude Code 2.1.x · Node 22 · Postgres 16 · stack (NestJS/Go/Next)
