@@ -137,6 +137,7 @@ Order: lint/format → typecheck → unit → integration (coverage ≥ 80% on c
 | `sw:discover` | claudekit scout + research (rewritten) |
 | `sw:architect` | superpowers brainstorming + claudekit plan/validate |
 | `sw:plan` | superpowers writing-plans + claudekit red-team |
+| `sw:threat-model` | new (STRIDE-lite + abuse cases; called from architect, feeds plan tests) |
 | `sw:worktree`, `sw:cleanup` | claudekit worktree.cjs (extended) + superpowers using-git-worktrees |
 | `sw:build` | superpowers SDD/executing-plans + TDD |
 | `sw:debug` | superpowers systematic-debugging + claudekit fix routing |

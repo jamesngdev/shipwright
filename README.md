@@ -28,7 +28,7 @@ It merges the discipline of [obra/superpowers](https://github.com/obra/superpowe
 | | Typical kit | **Shipwright** |
 |---|---|---|
 | Per-prompt context injection | ~3 KB every message | **0** |
-| Always-loaded skill + agent descriptions | ~27 K chars | **~4.2 K chars** |
+| Always-loaded skill + agent descriptions | ~27 K chars | **~4.4 K chars** |
 | Mandatory subagents per task | 5–6 | **0 (tiny) · 2 (small)** |
 | Approval gates | every step | **2 (design, plan)** |
 | Worktree DB / Redis isolation | — | **✓ cloned per worktree** |
@@ -67,6 +67,7 @@ git clone https://github.com/jamesngdev/shipwright && cd shipwright
         └─ small / large
              1 discover     code map (+ docs, best practices, prior art for large)
              2 architect ⛔  one-question-at-a-time interview → 2–3 approaches → design.md
+                            (+ threat model for large / security-sensitive tasks)
              3 plan      ⛔  file map + test-first tasks (+ red-team for large)
              ─── approved: runs continuously from here ───
              4 worktree     .worktree/feat-<slug> + own DB, Redis db, port
@@ -148,7 +149,7 @@ node ~/.claude/shipwright/bin/wt.cjs create order-refund --prefix feat
 
 ```text
 .claude-plugin/   plugin + marketplace manifests
-skills/           15 workflow skills + 3 stack packs (references load on demand)
+skills/           16 workflow skills + 3 stack packs (references load on demand)
 agents/           8 sw-* agents
 bin/              hooks, wt.cjs, auth-bypass, coverage gate, statusline, installer lib
 tests/            node:test suites (worktree tests use real Postgres + Redis)

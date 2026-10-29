@@ -152,6 +152,7 @@ POST /v1/auth/login {"email":"qa@example.com","password":"…"} → .accessToken
       <tr><td>Performance · observability · rollout</td><td>N+1/index/payload, logs and metrics, feature flag and rollback</td></tr>
       <tr><td>Frontend</td><td>loading/empty/error states, optimistic updates, a11y, responsive targets</td></tr>
     </table>
+    <p>For large tasks, or anything touching auth, payments, uploads, secrets, webhooks or multi-tenant data, it also runs <code>/sw:threat-model</code>. That pass lists assets, trust boundaries and abuse cases, and gives each threat a mitigation and a test. The result becomes a <code>## Threat model</code> section in <code>design.md</code>, and the plan turns each mitigation into a test-first task. You can also run it on its own.</p>
     <p>Next it lays out 2–3 approaches with their trade-offs and writes <code>design.md</code>, which doubles as the ADR. It does not plan until you approve.</p>
 
     <h2 id="plan">Plan</h2>
