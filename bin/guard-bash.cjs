@@ -5,14 +5,16 @@
 //  2. Ask before dumping secret files (cat .env, etc.).
 const path = require('path');
 const { readInput, decide, safe } = require('./lib/hook.cjs');
-const { tryGit } = require('./lib/git.cjs');
+const { tryGit, toplevel } = require('./lib/git.cjs');
+const { markerGrepArgs } = require('./lib/patterns.cjs');
 
 const MARKER = '@sw-auth-bypass';
 const COMMIT_RE = /\bgit\s+(?:-C\s+\S+\s+)?(?:commit|push)\b|\bgh\s+pr\s+create\b/;
 const SECRET_READ_RE = /\b(?:cat|less|more|head|tail|bat|nl|strings|xxd|base64)\b[^|;&]*?(?:^|[\s/'"])\.env(?:\.(?!example\b|sample\b|template\b)[\w.-]+)?(?=$|[\s'"|;&])/;
 
 function markerHits(cwd) {
-  const out = tryGit(['grep', '--untracked', '-n', '-I', '-e', MARKER, '--', '.', ':(exclude)*.md'], cwd);
+  const top = toplevel(cwd);
+  const out = top ? tryGit(markerGrepArgs(MARKER, top), top) : null;
   return out ? out.split('\n').filter(Boolean) : [];
 }
 

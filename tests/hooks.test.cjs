@@ -52,6 +52,46 @@ test('guard-bash: blocks commit/push while auth-bypass marker exists', () => {
   assert.equal(bash('git commit -m x'), 'allow', 'markdown mentions are ignored');
 });
 
+const markKit = (dir) => {
+  fs.mkdirSync(path.join(dir, '.claude-plugin'), { recursive: true });
+  fs.writeFileSync(path.join(dir, '.claude-plugin', 'plugin.json'), '{"name":"sw"}\n');
+};
+
+test('guard-bash: ignores the marker in the kit\'s own guard/test/doc files but not elsewhere', () => {
+  const dir = tmpRepo();
+  markKit(dir);
+  const bash = (command) => decision(runNode('guard-bash.cjs', { input: JSON.stringify({ tool_name: 'Bash', tool_input: { command }, cwd: dir }) }));
+  for (const f of ['bin/guard-bash.cjs', 'bin/auth-bypass.cjs', 'tests/hooks.test.cjs', 'site/guide.html']) {
+    fs.mkdirSync(path.dirname(path.join(dir, f)), { recursive: true });
+    fs.writeFileSync(path.join(dir, f), '// @sw-auth-bypass\n');
+  }
+  assert.equal(bash('git commit -m x'), 'allow');
+  assert.equal(runNode('auth-bypass.cjs', { cwd: dir, args: ['check'] }).code, 0);
+  fs.writeFileSync(path.join(dir, 'src.ts'), 'return true; // @sw-auth-bypass\n');
+  assert.equal(bash('git commit -m x'), 'deny');
+  assert.equal(runNode('auth-bypass.cjs', { cwd: dir, args: ['check'] }).code, 1);
+});
+
+test('guard-bash: exemption applies only in the kit repo', () => {
+  const dir = tmpRepo();
+  const bash = (command) => decision(runNode('guard-bash.cjs', { input: JSON.stringify({ tool_name: 'Bash', tool_input: { command }, cwd: dir }) }));
+  fs.mkdirSync(path.join(dir, 'site'));
+  fs.writeFileSync(path.join(dir, 'site', 'guide.html'), '// @sw-auth-bypass\n');
+  assert.equal(bash('git commit -m x'), 'deny');
+});
+
+test('guard-bash: scans the whole repo when run from a subdirectory', () => {
+  const dir = tmpRepo();
+  markKit(dir);
+  fs.mkdirSync(path.join(dir, 'docs'));
+  fs.mkdirSync(path.join(dir, 'bin'));
+  fs.writeFileSync(path.join(dir, 'bin', 'guard-bash.cjs'), '// @sw-auth-bypass\n');
+  const bash = (cwd) => decision(runNode('guard-bash.cjs', { input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: 'git commit -m x' }, cwd }) }));
+  assert.equal(bash(path.join(dir, 'bin')), 'allow', 'exempt file stays exempt from a subdirectory');
+  fs.writeFileSync(path.join(dir, 'src.ts'), 'return true; // @sw-auth-bypass\n');
+  assert.equal(bash(path.join(dir, 'docs')), 'deny', 'marker outside cwd is still found');
+});
+
 test('auth-bypass: start → edit → restore leaves the file pristine', () => {
   const dir = tmpRepo();
   const file = path.join(dir, 'auth.guard.ts');

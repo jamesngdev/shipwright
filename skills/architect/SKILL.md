@@ -31,6 +31,9 @@ Walk this checklist; ask ONLY items the task touches and the code does not settl
 | Rollout | feature flag, migration safety, rollback path |
 | Frontend (if any) | states (loading/empty/error), optimistic update, accessibility, responsive targets |
 
+## 3b. Threat model
+If the `/sw:threat-model` trigger list matches (large task, auth, money, uploads, secrets/PII, external input, new boundary), run it after the interview and keep its output as `## Threat model` in design.md. Otherwise skip.
+
 ## 4. Approaches
 Present 2–3 approaches in one message: each with how it works, trade-offs (complexity, performance, risk, effort) and your recommendation with the deciding reason. The user picks (or you proceed with the recommendation if they say so).
 
@@ -45,6 +48,7 @@ Write `<main>/.sw/specs/<slug>/design.md` (serves as the ADR):
 ## Data changes       (schema, migration, backfill, indexes)
 ## Rejected options   (option — why not)
 ## Risks & rollout    (risk → mitigation; flag/rollback)
+## Threat model       (only when /sw:threat-model ran: threats TM1…, mitigations, tests, residual risks)
 ## Test strategy      (unit: domain rules; integration: endpoints + DB; e2e/Playwright: flows; what proves done)
 ```
 Small tasks: Decision, Contracts, Test strategy only.

@@ -8,6 +8,7 @@
 const fs = require('fs');
 const path = require('path');
 const { toplevel, tryGit } = require('./lib/git.cjs');
+const { markerGrepArgs } = require('./lib/patterns.cjs');
 
 const MARKER = '@sw-auth-bypass';
 
@@ -37,7 +38,7 @@ function readManifest(top) {
 }
 
 function markerHits(top) {
-  const out = tryGit(['grep', '--untracked', '-n', '-I', '-e', MARKER, '--', '.', ':(exclude)*.md'], top);
+  const out = tryGit(markerGrepArgs(MARKER, top), top);
   return out ? out.split('\n').filter(Boolean) : [];
 }
 

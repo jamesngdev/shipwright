@@ -15,6 +15,6 @@
   ],
   "metadata": {
     "description": "Shipwright \u2014 research-first, test-driven Claude Code workflow for backend (NestJS/Prisma/Postgres/Redis/Go) and frontend teams.",
-    "version": "0.1.0"
+    "version": "0.2.0"
   }
 }

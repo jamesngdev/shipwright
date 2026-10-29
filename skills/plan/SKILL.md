@@ -42,6 +42,8 @@ TDD tiers (state one per task):
 - **integration** — endpoints/handlers: request → real DB → response, success + error cases.
 - **none** — config, DTO declarations, wiring, migrations (still covered by integration tests).
 
+If design.md has a `## Threat model`, every H/M threat's mitigation becomes a test-first task (or part of one) with the threat ID in the test name, e.g. `it('TM2: 404s on another tenant order')`.
+
 Include real values from the design (field names, error codes, limits). Code snippets only where an interface or tricky logic must be exact.
 
 ## 3. Red-team (large only)
